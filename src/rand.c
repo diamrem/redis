@@ -42,6 +42,8 @@
  */
 
 #include <stdint.h>
+#include "server.h"
+#include <hiredis.h>
 
 #define N	16
 #define MASK	((1 << (N - 1)) + (1 << (N - 1)) - 1)
@@ -90,4 +92,21 @@ static void next(void) {
             a[0] * x[2] + a[1] * x[1] + a[2] * x[0]);
     x[1] = LOW(p[1] + r[0]);
     x[0] = LOW(p[0]);
+}
+
+#define RAND_INV_RANGE(r) ((RAND_MAX) / (r))
+
+void randCommand(client *c) {
+    long max;
+
+    if (getLongFromObjectOrReply(c, c->argv[1], &max, NULL) != C_OK)
+        return;
+    long result;
+    do {
+        result = rand();
+    } while ((long)result >= max * (long)RAND_INV_RANGE(max));
+    result /= RAND_INV_RANGE(max);
+
+    addReplyLongLong(c, result);
+    return;
 }
